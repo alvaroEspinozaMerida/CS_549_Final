@@ -9,6 +9,8 @@ from urllib.parse import urlparse, urlsplit
 from collections import Counter
 import string
 
+from urllib3.util import parse_url
+
 # for copy on write
 pd.set_option("mode.copy_on_write", True)
 
@@ -170,6 +172,24 @@ def shannon_entropy(s: str) -> float:
     counts = Counter(s)
     total = len(s)
     return -sum((c/total) * math.log2(c/total) for c in counts.values())
+
+
+
+def get_digit_prop(s: str) -> float:
+    s = s or ""
+    return safe_div(sum(ch.isdigit() for ch in s), len(s))
+
+def digit_proportions(url: str) :
+
+    parts = parse_url(url)
+
+    raw = (parts.raw or "")
+    return {
+        "digit_prop_total": get_digit_prop(raw),
+        "digit_prop_host": get_digit_prop(parts.host),
+        "digit_prop_path": get_digit_prop(parts.path),
+        "digit_prop_query": get_digit_prop(parts.query),
+    }
 
 
 
