@@ -70,19 +70,21 @@ def generate_clean_csv():
     # convert to int
     final["label"] = final["label"].astype(int)
 
-    final['Valid_URLs'] = final['url'].apply(is_valid_url)
+    final['Valid_URLs'] = final['url'].apply(is_reasonable_url)
 
-    final_cleaned = final.dropna(subset=['Valid_URLs'])
-    final_cleaned["url"] = final_cleaned["Valid_URLs"]
+    final = final[final['Valid_URLs']]
 
-    final_cleaned = final_cleaned.drop(columns=['Valid_URLs'])
+    final_cleaned  = final.drop(columns=['Valid_URLs'])
+    # final_cleaned = final.dropna(subset=['Valid_URLs'])
+    # final_cleaned["url"] = final_cleaned["Valid_URLs"]
 
-
-
-
+    # final_cleaned = final_cleaned.drop(columns=['Valid_URLs'])
 
     final_cleaned.to_csv(data_folder / "all_urls.csv")
 
+def is_reasonable_url(u):
+    p = urlparse(u)
+    return bool(p.scheme or p.netloc or p.path)
 
 def is_valid_url(url):
 
@@ -182,6 +184,6 @@ def generate_final_dataset():
 
 # generate_final_dataset()
 # generate_clean_csv()
-df = pd.read_csv(project_folder / "data" / "final_dataset.csv")
+df = pd.read_csv(project_folder / "data" / "all_urls.csv")
 print(df.head())
 print(df.shape)
