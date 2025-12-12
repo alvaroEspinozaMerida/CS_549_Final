@@ -15,8 +15,9 @@ pd.set_option("mode.copy_on_write", True)
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
-cwd = Path().cwd()
-project_folder = cwd.parent
+#cwd = Path().cwd()
+#project_folder = cwd.parent
+project_folder = Path(__file__).resolve().parents[1]
 
 KEYWORDS = [
     "pay", "ticket", "fine", "refund", "claim", "submit", "verify", "update",
@@ -32,7 +33,7 @@ keyword_pattern = re.compile("|".join(KEYWORDS), re.IGNORECASE)
 
 def generate_clean_csv():
 
-    data_folder = project_folder / "data"
+    data_folder = project_folder / "csv"
 
     df1 = pd.read_csv(data_folder / "Phishing URLs.csv")
     print("df1 shape: ", df1.shape)
@@ -40,6 +41,13 @@ def generate_clean_csv():
 
     df2 = pd.read_csv(data_folder /"urldata.csv")
     print("df2 shape: ", df2.shape)
+    ##Tests
+    print("df2columns", df2.columns)
+    # normalize urldata.csv
+    if "label" in df2.columns:
+        df2 = df2.rename(columns={"label": "type"})
+    df2 = df2[["url", "type"]]
+
 
     df3 = pd.read_csv(data_folder /"malicious_phish.csv")
     print("df3 shape: ", df3.shape)
@@ -80,7 +88,7 @@ def generate_clean_csv():
 
     # final_cleaned = final_cleaned.drop(columns=['Valid_URLs'])
 
-    final_cleaned.to_csv(data_folder / "all_urls.csv")
+    final_cleaned.to_csv(data_folder / "all_urls.csv", index=False)
 
 def is_reasonable_url(u):
     p = urlparse(u)
@@ -100,6 +108,25 @@ def is_valid_url(url):
 
 def safe_div(num, den):
     return (num / den) if den else 0.0
+
+
+def char_proportions(url: str):
+    if not url:
+        return 0.0, 0.0, 0.0
+
+    total = len(url)
+    if total == 0:
+        return 0.0, 0.0, 0.0
+
+    digits = sum(c.isdigit() for c in url)
+    letters = sum(c.isalpha() for c in url)
+    specials = sum(c in string.punctuation for c in url)
+
+    return (
+        digits / total,
+        letters / total,
+        specials / total
+    )
 
 
 
@@ -175,7 +202,7 @@ def shannon_entropy(s: str) -> float:
 
 # Extract core lexical features
 def extract_lexical_features(url: str):
-    print("current url: ", url )
+    #print("current url: ", url )
     parsed = urlparse(url)
 
     host = parsed.netloc
@@ -201,6 +228,7 @@ def extract_lexical_features(url: str):
     entropy_value = shannon_entropy(url)
     #keyword count
     k_count = keyword_count(url)
+    digit_prop, letter_prop, special_prop = char_proportions(url)
 
     return pd.Series({
         "url_length": url_len,
@@ -212,7 +240,10 @@ def extract_lexical_features(url: str):
         "num_dots": num_dots,
         "num_slashes": num_slashes,
         "entropy": entropy_value,
-        "keyword_count": k_count
+        "keyword_count": k_count,
+        "digit_proportion": digit_prop,
+        "letter_proportion": letter_prop,
+        "special_proportion": special_prop
     })
 
 
@@ -224,11 +255,11 @@ def get_lexical_features(df):
 
 
 def generate_final_dataset():
-    df = pd.read_csv(project_folder / "data" / "all_urls.csv")
+    df = pd.read_csv(project_folder / "csv" / "all_urls.csv")
     print(df.head())
     print(df.shape)
     df = get_lexical_features(df)
-    df.to_csv(project_folder / "data" / "final_dataset.csv", index=False)
+    df.to_csv(project_folder / "csv" / "final_dataset.csv", index=False)
 
 def test_get_runs():
 
@@ -300,13 +331,31 @@ def test_average_path_token_length():
 
 
 
-test_get_runs()
-test_getCCR()
-test_average_path_token_length()
+if __name__ == "__main__": #change after tests
+    test_get_runs()
+    test_getCCR()
+    test_average_path_token_length()
+    generate_clean_csv()
+    generate_final_dataset()
+    
+    csv_path = project_folder / "csv" / "all_urls.csv"
+    if csv_path.exists():
+        df = pd.read_csv(csv_path)
+        print(df.shape)
+        print(df.isna().sum().sum())
+    else:
+        print("all_urls.csv not found")
 
-
-# generate_final_dataset()
-# generate_clean_csv()
-# df = pd.read_csv(project_folder / "data" / "all_urls.csv")
-# print(df.head())
-# print(df.shape)
+    """
+    My output after running:
+    All tests passed!
+    0.0
+    0.0
+    1.0
+    1.0
+    0.0
+    0.8
+    0.6
+    (695859, 3)
+    0
+    """
