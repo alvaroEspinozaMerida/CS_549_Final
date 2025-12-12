@@ -180,15 +180,19 @@ def get_CCR_transition(url:str) -> float:
 
 # gets the average length of each token in the path token
 def average_path_token_length(url: str) -> float:
-    parts = urlsplit(url if "://" in url else "http://" + url)
-    path = parts.path or ""
+    try:
+        parts = urlsplit(url if "://" in url else "http://" + url)
+        path = parts.path or ""
+        tokens = [t for t in path.split("/") if t]
 
-    tokens = [t for t in path.split("/") if t]
+        if not tokens:
+            return 0.0
 
-    if not tokens:
+        return sum(len(t) for t in tokens) / len(tokens)
+
+    except ValueError:
+        # Invalid IPv6 or malformed URL
         return 0.0
-
-    return sum(len(t) for t in tokens) / len(tokens)
 
 # Shannon entropy function
 def shannon_entropy(s: str) -> float:
@@ -228,6 +232,8 @@ def extract_lexical_features(url: str):
     entropy_value = shannon_entropy(url)
     #keyword count
     k_count = keyword_count(url)
+    ccr_transition = get_CCR_transition(url)
+    avg_path_tok_len = average_path_token_length(url)
     digit_prop, letter_prop, special_prop = char_proportions(url)
 
     return pd.Series({
@@ -243,7 +249,9 @@ def extract_lexical_features(url: str):
         "keyword_count": k_count,
         "digit_proportion": digit_prop,
         "letter_proportion": letter_prop,
-        "special_proportion": special_prop
+        "special_proportion": special_prop,
+        "ccr_transition": ccr_transition,
+        "avg_path_token_length": avg_path_tok_len
     })
 
 
