@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import math
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit
 from collections import Counter
 import string
 
@@ -109,11 +109,59 @@ def keyword_count(url: str):
 
 
 
+#char class
+# 1 = alpha, 2 = digit, 3 = special 4 = other
+def get_char_class(c: str) -> int:
+    if c.isalpha():
+        return 1
+    if c.isdigit():
+        return 2
+    if c in "/?&=.-_~%+@:#":
+        return 3
+    return 4
+
+
+
+def get_runs(seq) -> int:
+    if not seq:
+        return 0
+    r = 1
+    for i in range(1, len(seq)):
+        if seq[i] != seq[i - 1]:
+            r += 1
+    return r
+
+
 
 #CCR
 # Character Continuity Rate is used to find the sum
 # of the longest token length of each character type in the domain, such as
 # abc567ti = (3 + 3 + 1)/9 = 0.77.
+# measures how often the url transitions between different character classes
+# closer to 1 typically indicates valid url
+# closer to 0 indicates invalid url
+def get_CCR_transition(url:str) -> float:
+
+    s = (url or "").strip()
+
+    if len(s) <= 1:
+        return 0.0
+    else:
+        seq = [get_char_class(c) for c in s]
+        r = get_runs(seq)
+        return 1.0 - safe_div((r - 1), (len(s) - 1))
+
+# gets the average length of each token in the path token
+def average_path_token_length(url: str) -> float:
+    parts = urlsplit(url if "://" in url else "http://" + url)
+    path = parts.path or ""
+
+    tokens = [t for t in path.split("/") if t]
+
+    if not tokens:
+        return 0.0
+
+    return sum(len(t) for t in tokens) / len(tokens)
 
 # Shannon entropy function
 def shannon_entropy(s: str) -> float:
@@ -182,8 +230,83 @@ def generate_final_dataset():
     df = get_lexical_features(df)
     df.to_csv(project_folder / "data" / "final_dataset.csv", index=False)
 
+def test_get_runs():
+
+    assert get_runs([]) == 0
+
+    assert get_runs(["a"]) == 1
+
+    assert get_runs(["a", "a", "a"]) == 1
+
+    assert get_runs(["a", "b", "c", "d"]) == 4
+
+    assert get_runs(["a", "b", "a", "b"]) == 4
+
+    assert get_runs(["a", "a", "b", "b", "a"]) == 3
+
+    assert get_runs([1, 1, 2, 2, 2, 3]) == 3
+    print("All tests passed!")
+
+
+def test_getCCR():
+    # Empty and single
+    assert get_CCR_transition("") == 0.0
+    assert get_CCR_transition("a") == 0.0
+
+    assert abs(get_CCR_transition("aaaa") - 1.0) < 1e-12
+    assert abs(get_CCR_transition("1111") - 1.0) < 1e-12
+
+    assert abs(get_CCR_transition("a1a1") - 0.0) < 1e-12
+
+
+    assert abs(get_CCR_transition("aaa111") - 0.8) < 1e-12
+
+
+    assert abs(get_CCR_transition("ab--12") - 0.6) < 1e-12
+
+
+    print(get_CCR_transition(""))
+    print(get_CCR_transition("a"))
+    print(get_CCR_transition("aaaa"))
+    print(get_CCR_transition("1111"))
+    print(get_CCR_transition("a1a1"))
+    print(get_CCR_transition("aaa111"))
+    print(get_CCR_transition("ab--12"))
+
+
+
+
+
+
+def test_average_path_token_length():
+    # no path
+    assert average_path_token_length("http://example.com") == 0.0
+
+    # one path var length = 5
+    assert average_path_token_length("http://example.com/login") == 5.0
+
+    # two path len1 = 8, len2 = 5 = 13/2 = 6.5
+    assert abs(
+        average_path_token_length("http://example.com/products/books") - 6.5
+    ) < 1e-12
+
+    # no path var = 0
+    assert average_path_token_length("http://example.com/") == 0.0
+
+    # three path len1 = 1 , len2 = does not count in this algo , len3 = 2, len4 = 1 = 4/3 = 1.33
+    assert abs(
+        average_path_token_length("http://example.com/a//bc/d") - (4 / 3)
+    ) < 1e-12
+
+
+
+test_get_runs()
+test_getCCR()
+test_average_path_token_length()
+
+
 # generate_final_dataset()
 # generate_clean_csv()
-df = pd.read_csv(project_folder / "data" / "all_urls.csv")
-print(df.head())
-print(df.shape)
+# df = pd.read_csv(project_folder / "data" / "all_urls.csv")
+# print(df.head())
+# print(df.shape)
