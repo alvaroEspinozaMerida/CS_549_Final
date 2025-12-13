@@ -8,6 +8,8 @@ import re
 from urllib.parse import urlparse, urlsplit
 from collections import Counter
 import string
+from imblearn.over_sampling import SMOTE
+from sklearn.model_selection import train_test_split
 
 # for copy on write
 pd.set_option("mode.copy_on_write", True)
@@ -28,12 +30,44 @@ KEYWORDS = [
 
 keyword_pattern = re.compile("|".join(KEYWORDS), re.IGNORECASE)
 
+def generate_train_test_split():
+
+
+    data_path = project_folder / "data" / "final_dataset.csv"
+    if data_path.exists():
+
+        df = pd.read_csv(data_path)
+        y = df["label"]
+        X = df.drop(columns=["label", "url","type"])
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42, stratify=y, shuffle=True
+        )
+
+        smote = SMOTE(random_state=42)
+
+        X_train_smote, y_train_smote = smote.fit_resample(X_train, y_train)
+
+        print("Before SMOTE:")
+        print(y_train.value_counts())
+
+        print("\nAfter SMOTE:")
+        print(y_train_smote.value_counts())
+
+        return X_train_smote, X_test, y_train_smote, y_test
+
+
+    else:
+        print("all_urls.csv not found")
+
+
+generate_train_test_split()
 
 #Assuming you have original datasets
 
 def generate_clean_csv():
 
-    data_folder = project_folder / "csv"
+    data_folder = project_folder / "data"
 
     df1 = pd.read_csv(data_folder / "Phishing URLs.csv")
     print("df1 shape: ", df1.shape)
@@ -263,11 +297,11 @@ def get_lexical_features(df):
 
 
 def generate_final_dataset():
-    df = pd.read_csv(project_folder / "csv" / "all_urls.csv")
+    df = pd.read_csv(project_folder / "data" / "all_urls.csv")
     print(df.head())
     print(df.shape)
     df = get_lexical_features(df)
-    df.to_csv(project_folder / "csv" / "final_dataset.csv", index=False)
+    df.to_csv(project_folder / "data" / "final_dataset.csv", index=False)
 
 def test_get_runs():
 
@@ -339,20 +373,20 @@ def test_average_path_token_length():
 
 
 
-if __name__ == "__main__": #change after tests
-    test_get_runs()
-    test_getCCR()
-    test_average_path_token_length()
-    generate_clean_csv()
-    generate_final_dataset()
-    
-    csv_path = project_folder / "csv" / "all_urls.csv"
-    if csv_path.exists():
-        df = pd.read_csv(csv_path)
-        print(df.shape)
-        print(df.isna().sum().sum())
-    else:
-        print("all_urls.csv not found")
+# if __name__ == "__main__": #change after tests
+#     # test_get_runs()
+#     # test_getCCR()
+#     # test_average_path_token_length()
+#     generate_clean_csv()
+#     generate_final_dataset()
+#
+#     csv_path = project_folder / "data" / "all_urls.csv"
+#     if csv_path.exists():
+#         df = pd.read_csv(csv_path)
+#         print(df.shape)
+#         print(df.isna().sum().sum())
+#     else:
+#         print("all_urls.csv not found")
 
     """
     My output after running:
