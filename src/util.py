@@ -61,8 +61,6 @@ def generate_train_test_split():
         print("all_urls.csv not found")
 
 
-generate_train_test_split()
-
 #Assuming you have original datasets
 
 def generate_clean_csv():
