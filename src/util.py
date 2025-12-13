@@ -32,7 +32,6 @@ keyword_pattern = re.compile("|".join(KEYWORDS), re.IGNORECASE)
 
 def generate_train_test_split():
 
-
     data_path = project_folder / "data" / "final_dataset.csv"
     if data_path.exists():
 
@@ -56,12 +55,11 @@ def generate_train_test_split():
 
         return X_train_smote, X_test, y_train_smote, y_test
 
-
     else:
-        print("all_urls.csv not found")
+        print("final_dataset.csv not found")
+        return None
 
 
-generate_train_test_split()
 
 #Assuming you have original datasets
 
@@ -373,31 +371,18 @@ def test_average_path_token_length():
 
 
 
-# if __name__ == "__main__": #change after tests
-#     # test_get_runs()
-#     # test_getCCR()
-#     # test_average_path_token_length()
-#     generate_clean_csv()
-#     generate_final_dataset()
-#
-#     csv_path = project_folder / "data" / "all_urls.csv"
-#     if csv_path.exists():
-#         df = pd.read_csv(csv_path)
-#         print(df.shape)
-#         print(df.isna().sum().sum())
-#     else:
-#         print("all_urls.csv not found")
+if __name__ == "__main__": #change after tests
+    # test_get_runs()
+    # test_getCCR()
+    # test_average_path_token_length()
+    generate_clean_csv()
+    generate_final_dataset()
 
-    """
-    My output after running:
-    All tests passed!
-    0.0
-    0.0
-    1.0
-    1.0
-    0.0
-    0.8
-    0.6
-    (695859, 3)
-    0
-    """
+    csv_path = project_folder / "data" / "final_dataset.csv"
+    if csv_path.exists():
+        df = pd.read_csv(csv_path)
+        print(df.shape)
+        print("columns:", len(df.columns))
+        print(df.isna().sum().sum())
+    else:
+        print("final_dataset.csv not found.")
